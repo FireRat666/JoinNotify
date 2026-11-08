@@ -1,6 +1,6 @@
 // Join Notify as a SideQuest/Altspace Creator SDK snippet.
 //
-//   <bs-snippet name="join-notify" title="Join Notify" single="true"
+//   <bs-snippet name="notify" title="Join Notify" single="true"
 //     script="https://join-notify.firer.at/snippet.js"></bs-snippet>
 //
 // Shows Altspace's native toast ("<name> joined") when another player joins the space.
@@ -12,7 +12,7 @@
 // The bundles sit next to this file in bundles/<platform>/jointoast. Set bundle-base on the element
 // to load them from somewhere else.
 (() => {
-  const SNIPPET_NAME = 'join-notify';
+  const SNIPPET_NAME = 'notify';
   const BUNDLE_FILE = 'jointoast';
   // The app caches kit bundles by URL, so bump this whenever the bundles are rebuilt.
   const BUNDLE_VERSION = '1';
