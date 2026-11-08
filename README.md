@@ -47,7 +47,8 @@ All optional, as attributes on the element.
 | `color` | `#2a2a2a` | Notification colour, `#rrggbb`. |
 | `cooldown` | `10` | Seconds after the space loads before anything is announced, so the people already there aren't. |
 | `admins-only` | `false` | `true` so only space admins (owner, moderators) get notifications. |
-| `sound` | `ping.ogg` | URL of a `.mp3`, `.wav` or `.ogg` to play with each notification, or `none` for silence. |
+| `join-sound` | `ping.ogg` | URL of a `.mp3`, `.wav` or `.ogg` to play with join notifications. Blank for no sound. |
+| `leave-sound` | `ping.ogg` | The same for leave notifications. |
 | `sound-volume` | `0.5` | 0 to 1. |
 | `bundle-base` | `bundles/` next to the script | Folder URL to load the kit from instead. |
 

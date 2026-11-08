@@ -18,8 +18,9 @@
 //   cooldown       Seconds after the space loads before announcing,
 //                  so the players already there aren't announced.         Default 10
 //   admins-only    "true" so only space admins get notifications.         Default false
-//   sound          URL of a .mp3, .wav or .ogg to play with each one,
-//                  or "none" for silence.                                 Default ping.ogg next to this file
+//   join-sound     URL of a .mp3, .wav or .ogg to play with joins.
+//                  Blank for no sound.                                    Default ping.ogg next to this file
+//   leave-sound    The same for leaves.                                   Default ping.ogg next to this file
 //   sound-volume   0 to 1.                                                Default 0.5
 //   bundle-base    Folder URL of the kit bundles.                         Default bundles/ next to this file
 (() => {
@@ -70,7 +71,12 @@
     if (!color.startsWith('#')) color = '#' + color;
     if (!/^#[0-9a-f]{6}$/i.test(color)) color = DEFAULT_COLOR;
     const scriptUrl = new URL(el.getAttribute('script') || (thisScript && thisScript.src) || location.href, location.href);
-    const sound = str('sound', DEFAULT_SOUND);
+    // Left out: the default sound. Present but blank: no sound.
+    const sound = (name) => {
+      const value = el.getAttribute(name);
+      if (value === null) return new URL(DEFAULT_SOUND, scriptUrl).href;
+      return value.trim() === '' ? '' : new URL(value.trim(), scriptUrl).href;
+    };
     return {
       joinMessage: str('join-message', '{name} joined'),
       leaveMessage: str('leave-message', '{name} left'),
@@ -79,7 +85,8 @@
       color,
       cooldown: num('cooldown', 10),
       adminsOnly: bool('admins-only', false),
-      sound: sound.toLowerCase() === 'none' ? '' : new URL(sound, scriptUrl).href,
+      joinSound: sound('join-sound'),
+      leaveSound: sound('leave-sound'),
       soundVolume: Math.min(1, num('sound-volume', 0.5)),
     };
   };
@@ -98,7 +105,7 @@
     });
 
     let audio = null;
-    const notify = async (template, user) => {
+    const notify = async (template, sound, user) => {
       if (!user || user.isLocal || performance.now() < readyAt) return;
       if (settings.adminsOnly && !(scene.localUser && scene.localUser.isSpaceAdmin)) return;
       // Quotes and backslashes would come through JSON escaped, so leave them out.
@@ -107,11 +114,11 @@
       await scene.SendToVisualScripting(DURATION_ID, settings.duration);
       await scene.SendToVisualScripting(COLOR_ID, settings.color);
       await scene.SendToVisualScripting(MESSAGE_ID, message);
-      if (audio) audio.PlayOneShotFromUrl(settings.sound).catch((e) => console.warn(`${LOG}: sound failed`, e));
+      if (audio && sound) audio.PlayOneShotFromUrl(sound).catch((e) => console.warn(`${LOG}: sound failed`, e));
     };
-    scene.On('user-joined', (e) => notify(settings.joinMessage, e.detail));
+    scene.On('user-joined', (e) => notify(settings.joinMessage, settings.joinSound, e.detail));
     scene.On('user-left', (e) => {
-      if (settings.notifyLeaves) notify(settings.leaveMessage, e.detail);
+      if (settings.notifyLeaves) notify(settings.leaveMessage, settings.leaveSound, e.detail);
     });
 
     try {
@@ -121,7 +128,7 @@
       await obj.AddComponent(new BS.AssetBundle(urls));
       // "*" = the first prefab in the AssetBundle on this same object.
       await obj.AddComponent(new BS.KitItem({ path: '*' }));
-      if (settings.sound) {
+      if (settings.joinSound || settings.leaveSound) {
         // 2D, so it sounds the same wherever you stand.
         audio = await obj.AddComponent(new BS.AudioSource({ volume: settings.soundVolume, spatialBlend: 0, playOnAwake: false }));
       }
