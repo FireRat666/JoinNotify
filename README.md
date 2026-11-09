@@ -2,6 +2,8 @@
 
 Shows Altspace's native notification ("Alex joined") when another player joins the space, and optionally when they leave. You don't get one for yourself, or for the people already there when you arrive.
 
+Includes options to show randomly generated funny join messages in the notification toasts and optionally speak them aloud via TTS (`https://speak.firer.at`). Every player in the space sees and hears the exact same message when someone joins.
+
 ## How it works
 
 JavaScript can't raise the native notification, but Visual Scripting can (the **Add Toast Message** node). So `snippet.js` loads a tiny kit (an asset bundle holding one prefab) and spawns it with `BS.AssetBundle` + `BS.KitItem("*")`.
@@ -15,6 +17,11 @@ On BS Callback "join-notify"          -> Add Toast Message (message, duration, c
 ```
 
 The graph only uses nodes on the app's allow list (checked with the SDK's Visual Scripting validator).
+
+When funny messages are enabled (`funny-messages="true"`), the script deterministically selects a message from a clean list of over 80 funny messages (or your custom list) using an FNV-1a hash of the player's info, session, room state, and a synchronized 5-minute time bucket (`Math.floor(Date.now() / 300000)`).
+- **Varied across visits:** Messages vary continuously across the day, different visits, and reconnects.
+- **Synchronized in space:** Because all clients calculate the same hash for that join, **every player in the room sees (and hears) the exact same message**.
+- **No minute-edge drift:** The 5-minute window virtually eliminates the boundary race condition that would happen with a 1-minute bucket across different device clocks.
 
 ## Files
 
@@ -34,22 +41,54 @@ Paste into `Assets/WebRoot/index.html`, between the snippet section comments:
   script="https://join-notify.firer.at/snippet.js"></bs-snippet>
 ```
 
+### Examples
+
+**Funny Toasts Only (with standard ping sound, no voice):**
+```html
+<bs-snippet name="notify" title="Join Notify" single="true"
+  script="https://join-notify.firer.at/snippet.js"
+  funny-messages="true">
+</bs-snippet>
+```
+
+**Funny Toasts + Spoken TTS Voice:**
+```html
+<bs-snippet name="notify" title="Join Notify" single="true"
+  script="https://join-notify.firer.at/snippet.js"
+  funny-messages="true"
+  speak-joins="true">
+</bs-snippet>
+```
+
+**Standard Toasts + Spoken TTS Voice:**
+```html
+<bs-snippet name="notify" title="Join Notify" single="true"
+  script="https://join-notify.firer.at/snippet.js"
+  speak-joins="true">
+</bs-snippet>
+```
+
 ## Settings
 
-All optional, as attributes on the element.
+All optional, as simple attributes on the `<bs-snippet>` element.
 
 | Attribute | Default | What it does |
 |-----------|---------|--------------|
-| `join-message` | `{name} joined` | Text for joins. `{name}` is the player's name. |
-| `leave-message` | `{name} left` | Text for leaves. |
-| `notify-leaves` | `false` | `true` to announce leaves too. |
+| `funny-messages` | `false` | `true` to display randomly chosen funny join messages in toasts instead of `{name} joined`. Synchronized so all players see the same message. |
+| `speak-joins` | `false` | `true` to speak the join message out loud via TTS (`https://speak.firer.at`) instead of playing `join-sound`. |
+| `join-sound` | `ping.ogg` | URL of a `.mp3`, `.wav` or `.ogg` sound to play when someone joins. Leave blank for silent. |
+| `join-message` | `{name} joined` | Standard toast text used when `funny-messages` is `false`. `{name}` is replaced by the player's name. |
+| `notify-leaves` | `false` | `true` to announce when players leave too. |
+| `funny-leaves` | `false` | `true` to display funny departure messages in toasts. Synchronized across all players. |
+| `speak-leaves` | `false` | `true` to speak leave messages out loud via TTS. |
+| `leave-sound` | `ping.ogg` | Sound to play when someone leaves. Leave blank for silent. |
+| `leave-message` | `{name} left` | Standard toast text used when `funny-leaves` is `false`. |
 | `duration` | `5` | Seconds each notification stays up (whole seconds). |
 | `color` | `#2a2a2a` | Notification colour, `#rrggbb`. |
-| `cooldown` | `10` | Seconds after the space loads before anything is announced, so the people already there aren't. |
+| `cooldown` | `10` | Seconds after the space loads before anything is announced, so people already in the room aren't spammed. |
 | `admins-only` | `false` | `true` so only space admins (owner, moderators) get notifications. |
-| `join-sound` | `ping.ogg` | URL of a `.mp3`, `.wav` or `.ogg` to play with join notifications. Blank for no sound. |
-| `leave-sound` | `ping.ogg` | The same for leave notifications. |
-| `sound-volume` | `0.5` | 0 to 1. |
+| `sound-volume` | `0.5` | Sound effect / voice volume, 0 to 1. |
+| `join-messages` | Clean built-in list | Optional custom join message templates separated by `\|` or a JSON string array. Supports `{name}` or `<user>`. |
 | `bundle-base` | `bundles/` next to the script | Folder URL to load the kit from instead. |
 
 Quotes and backslashes are left out of messages.
